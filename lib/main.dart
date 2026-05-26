@@ -1,187 +1,302 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(const ComplexCopyApp());
+  runApp(const MyApp());
 }
 
-class ComplexCopyApp extends StatelessWidget {
-  const ComplexCopyApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Advanced Data Table',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.teal),
-      home: const ComplexArticleScreen(),
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
+        useMaterial3: true,
+      ),
+      home: const AdvanceTableScreen(),
     );
   }
 }
 
-class ComplexArticleScreen extends StatelessWidget {
-  const ComplexArticleScreen({super.key});
+// Configure horizontal scrolling by allowing click-and-drag with the mouse
+class MouseDraggableScrollBehavior extends MaterialScrollBehavior {
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,
+    PointerDeviceKind.trackpad,
+  };
+}
+
+class AdvanceTableScreen extends StatefulWidget {
+  const AdvanceTableScreen({super.key});
+
+  @override
+  State<AdvanceTableScreen> createState() => _AdvanceTableScreenState();
+}
+
+class _AdvanceTableScreenState extends State<AdvanceTableScreen> {
+  final ScrollController _horizontalScrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _horizontalScrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    const double tableWidth = 1300.0;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Xử Lý Copy Giao Diện Phức Tạp'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // AppBar không bọc SelectionArea nên tiêu đề không thể bị bôi đen lỗi
+        title: const Text(
+          'Statistics Table (Selection Area)',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.teal.shade100,
       ),
-      // Bọc SelectionArea xung quanh toàn bộ phần thân, NHƯNG sẽ khoá (disable) ở những chỗ cần thiết
+      // Wrap everything in SelectionArea to manage global text selection
       body: SelectionArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16.0),
-          children: [
-            // 1. Vùng Nội Dung (ĐƯỢC bôi đen)
-            const Text(
-              'Hướng dẫn tối ưu SelectionArea trong Flutter',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-
-            // 2. Vùng Tương Tác: KHÔNG ĐƯỢC bôi đen để tránh lỗi khi click
-            SelectionContainer.disabled(
-              child: Row(
+        child: ScrollConfiguration(
+          behavior: MouseDraggableScrollBehavior(),
+          child: SingleChildScrollView(
+            controller: _horizontalScrollController,
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: tableWidth,
+              child: Column(
                 children: [
-                  const CircleAvatar(child: Icon(Icons.person)),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Tác giả: Dev Flutter',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          'Đăng 2 giờ trước',
-                          style: TextStyle(color: Colors.grey, fontSize: 12),
-                        ),
-                      ],
+                  _buildTableHeader(),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: 50,
+                      itemBuilder: (context, index) {
+                        return ExpandableRowWidget(index: index);
+                      },
                     ),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {},
-                    child: const Text('Theo dõi'),
                   ),
                 ],
               ),
             ),
-
-            const SizedBox(height: 16),
-
-            // Nội dung bài viết (ĐƯỢC bôi đen)
-            const Text(
-              'Đây là nội dung chính của bài viết. Ở đây bạn có thể thoải mái bôi đen để copy. '
-              'Tuy nhiên, khi kéo chuột xuống phần Danh mục hoặc Nút bấm, công cụ bôi đen sẽ tự động '
-              'bỏ qua chúng vì chúng ta đã dùng SelectionContainer.disabled.',
-              style: TextStyle(fontSize: 16, height: 1.5),
-            ),
-            const SizedBox(height: 24),
-
-            // 3. Vùng Cuộn Ngang (Horizontal Scroll): KHÔNG ĐƯỢC bôi đen
-            // Nếu không disable, khi người dùng vuốt ngang qua Text, nó sẽ nhầm thành kéo bôi đen chữ
-            const Text(
-              'Danh mục liên quan:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            SelectionContainer.disabled(
-              child: SizedBox(
-                height: 40,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: 10,
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: ActionChip(
-                        label: Text('Tag ${index + 1}'),
-                        onPressed: () {},
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24.0),
-              child: Divider(),
-            ),
-
-            // 4. Danh Sách Bình Luận Động (ListView.builder)
-            const Text(
-              'Bình luận (Có thể bôi đen nội dung):',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-
-            // ShrinkWrap dùng cho demo để nhúng ListView vào trong ListView cha
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: 5,
-              itemBuilder: (context, index) {
-                return _buildCommentItem(index);
-              },
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  // Widget hiển thị từng bình luận
-  Widget _buildCommentItem(int index) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Avatar (Không thể bôi đen)
-          SelectionContainer.disabled(
-            child: CircleAvatar(
-              backgroundColor: Colors.teal.shade100,
-              child: Text('${index + 1}'),
+  Widget _buildTableHeader() {
+    return Container(
+      color: Colors.grey.shade200,
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+      child: DefaultTextStyle(
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+          color: Colors.black87,
+        ),
+        child: const Row(
+          children: [
+            SizedBox(width: 80, child: Text('ID')),
+            SizedBox(width: 250, child: Text('Company Name')),
+            SizedBox(width: 180, child: Text('Revenue (USD)')),
+            SizedBox(width: 150, child: Text('Growth')),
+            SizedBox(width: 300, child: Text('Report Document (Link)')),
+            Expanded(child: Text('System Notes')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ExpandableRowWidget extends StatefulWidget {
+  final int index;
+
+  const ExpandableRowWidget({super.key, required this.index});
+
+  @override
+  State<ExpandableRowWidget> createState() => _ExpandableRowWidgetState();
+}
+
+class _ExpandableRowWidgetState extends State<ExpandableRowWidget> {
+  bool _isExpanded = false;
+
+  void _toggleExpand() {
+    setState(() {
+      _isExpanded = !_isExpanded;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          // Tap row to expand
+          onTap: _toggleExpand,
+          child: Container(
+            decoration: BoxDecoration(
+              color: _isExpanded ? Colors.teal.shade50.withOpacity(0.3) : null,
+              border: Border(
+                bottom: BorderSide(color: Colors.grey.shade300, width: 0.8),
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            padding: const EdgeInsets.symmetric(
+              vertical: 16.0,
+              horizontal: 16.0,
+            ),
+            child: Row(
               children: [
-                // Tên người dùng và nút thao tác (Không thể bôi đen)
-                SelectionContainer.disabled(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'User_00${index + 1}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.more_horiz, size: 20),
-                        onPressed: () {},
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                    ],
+                // Use standard Text widgets because SelectionArea handles text selection
+                SizedBox(width: 80, child: Text('#${1000 + widget.index}')),
+                SizedBox(
+                  width: 250,
+                  child: Text('VinTech Technology Group ${widget.index + 1}'),
+                ),
+                SizedBox(
+                  width: 180,
+                  child: Text('\$${(widget.index + 1) * 14500}'),
+                ),
+                SizedBox(
+                  width: 150,
+                  child: Text(
+                    '+${(widget.index * 1.5).toStringAsFixed(1)}%',
+                    style: const TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 4),
-
-                // Nội dung bình luận (ĐƯỢC PHÉP bôi đen)
-                // Nằm trong SelectionArea tổng nên vẫn copy được bình thường!
-                Text(
-                  'Đây là nội dung bình luận số ${index + 1}. Bạn có thể bôi đen phần này để trích dẫn lại nếu muốn. Mã lỗi: ERR_${index}99X',
-                  style: const TextStyle(fontSize: 15),
+                SizedBox(
+                  width: 300,
+                  child: Text.rich(
+                    TextSpan(
+                      text: 'Download file bieu_mau_bc_${widget.index}.pdf',
+                      style: const TextStyle(
+                        color: Colors.blue,
+                        decoration: TextDecoration.underline,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      recognizer: TapGestureRecognizer()
+                        ..onTap = () {
+                          _openLinkSimulation(context, widget.index);
+                        },
+                    ),
+                  ),
+                ),
+                const Expanded(
+                  child: Text(
+                    'System data is automatically synchronized from the APAC main server.',
+                  ),
                 ),
               ],
             ),
           ),
-        ],
+        ),
+
+        // Expanded detail area
+        AnimatedSize(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          child: _isExpanded
+              ? Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20.0),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    border: Border(
+                      bottom: BorderSide(color: Colors.teal.shade200, width: 1),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'ADDITIONAL CATEGORY DETAILS - ITEM NUMBER ${widget.index + 1}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.teal.shade900,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Table(
+                        border: TableBorder.all(color: Colors.grey.shade300),
+                        columnWidths: const {
+                          0: FixedColumnWidth(150),
+                          1: FixedColumnWidth(200),
+                          2: FixedColumnWidth(250),
+                        },
+                        children: [
+                          TableRow(
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                            ),
+                            children: const [
+                              Padding(
+                                padding: EdgeInsets.all(8),
+                                child: Text(
+                                  'Warehouse Code',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              Padding(
+                                padding: EdgeInsets.all(8),
+                                child: Text(
+                                  'Location',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              Padding(
+                                padding: EdgeInsets.all(8),
+                                child: Text(
+                                  'Verification Status',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                          ),
+                          TableRow(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(8),
+                                child: Text('WH-NINHBINH-${widget.index}'),
+                              ),
+                              const Padding(
+                                padding: EdgeInsets.all(8),
+                                child: Text('Area A, Floor 3'),
+                              ),
+                              const Padding(
+                                padding: EdgeInsets.all(8),
+                                child: Text(
+                                  'Approved Successfully ✓',
+                                  style: TextStyle(color: Colors.green),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                )
+              : const SizedBox.shrink(),
+        ),
+      ],
+    );
+  }
+
+  void _openLinkSimulation(BuildContext context, int index) {
+    ScaffoldMessenger.of(context).removeCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('🔗 Opening report document page #$index...'),
+        backgroundColor: Colors.teal.shade700,
+        duration: const Duration(seconds: 1),
       ),
     );
   }
